@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 換車財務精算分析系統</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, '微軟正黑體', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        .card { 
+            background: white; 
+            border-radius: 1rem; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+            padding: 2rem; 
+            margin-bottom: 2rem; 
+        }
+        .danger { color: #dc2626; font-weight: bold; }
+        .success { color: #16a34a; font-weight: bold; }
+        input[type="range"] { accent-color: #2563eb; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        const formatCurrency = (num) => {
+            return new Intl.NumberFormat('zh-TW', { 
+                style: 'currency', 
+                currency: 'TWD', 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 0 
+            }).format(num);
+        };
+
+        const usePersistentState = (key, initialValue) => {
+            const [state, setState] = useState(() => {
+                const saved = localStorage.getItem(key);
+                return saved !== null ? JSON.parse(saved) : initialValue;
+            });
+            useEffect(() => {
+                localStorage.setItem(key, JSON.stringify(state));
+            }, [key, state]);
+            return [state, setState];
+        };
+
+        const App = () => {
+            const [crvSellPrice, setCrvSellPrice] = usePersistentState('crvSellPrice', 800000); 
+            const [caviraPrice, setCaviraPrice] = usePersistentState('caviraPrice', 1267500); 
+            const [totalLoanAmount, setTotalLoanAmount] = usePersistentState('totalLoanAmount', 1400000); 
+            const [loanRate, setLoanRate] = usePersistentState('loanRate', 3.55); 
+            const [annualMileage, setAnnualMileage] = usePersistentState('annualMileage', 45000); 
+            
+            const [investTarget, setInvestTarget] = usePersistentState('investTarget', '006208');
+            const [investmentRate, setInvestmentRate] = usePersistentState('investmentRate', 8.0); 
+            const [dcaMonths, setDcaMonths] = usePersistentState('dcaMonths', 24); 
+
+            const [fuelPrice, setFuelPrice] = usePersistentState('fuelPrice', '31.0'); 
+            const [elecPrice, setElecPrice] = usePersistentState('elecPrice', '2.06'); 
+            const [crvFuelEconomy, setCrvFuelEconomy] = usePersistentState('crvFuelEconomy', '13.5'); 
+            const [caviraEfficiency, setCaviraEfficiency] = usePersistentState('caviraEfficiency', '6.0'); 
+            const [chargerInstallCost, setChargerInstallCost] = usePersistentState('chargerInstallCost', '50000'); 
+            
+            const [evTireCost, setEvTireCost] = usePersistentState('evTireCost', '14000'); 
+            const [evTireLifespan, setEvTireLifespan] = usePersistentState('evTireLifespan', '40000'); 
+            
+            const [fundingPlan, setFundingPlan] = usePersistentState('fundingPlan', 'A');
+
+            const handleInvestTargetChange = (e) => {
+                const target = e.target.value;
+                setInvestTarget(target);
+                if (target === '0050' || target === '006208') {
+                    setInvestmentRate(8.0); 
+                } else if (target === '00713') {
+                    setInvestmentRate(6.5); 
+                } else if (target === '00878') {
+                    setInvestmentRate(7.0); 
+                }
+            };
+
+            const resetToDefault = () => {
+                if(window.confirm('確定要還原所有參數到預設值嗎？')) {
+                    localStorage.clear();
+                    window.location.reload();
+                }
+            };
+
+            const actualLoanAmount = useMemo(() => {
+                if (fundingPlan === 'A') return totalLoanAmount;
+                const totalSetup = caviraPrice + (Number(chargerInstallCost) || 0) + 38000;
+                return Math.max(0, totalSetup - crvSellPrice);
+            }, [fundingPlan, totalLoanAmount, caviraPrice, chargerInstallCost, crvSellPrice]);
+
+            const actualInvestAmount = useMemo(() => {
+                return fundingPlan === 'A' ? crvSellPrice : 0;
+            }, [fundingPlan, crvSellPrice]);
+
+            const fixedPlanBLoanAmount = useMemo(() => {
+                const totalSetup = caviraPrice + (Number(chargerInstallCost) || 0) + 38000;
+                return Math.max(0, totalSetup - crvSellPrice);
+            }, [caviraPrice, chargerInstallCost, crvSellPrice]);
+
+            const crvDetails = useMemo(() => {
+                const fe = Number(crvFuelEconomy) || 1; 
+                const fuel = (annualMileage / fe) * (Number(fuelPrice) || 0);
+                const tax = 11920; 
+                const maint = 20000 + (annualMileage / 20000) * 8000; 
+                const tires = (annualMileage / 40000) * 16000; 
+                const insurance = 12000; 
+                
+                const cashFlow = fuel + tax + maint + tires + insurance;
+                return { fuel, tax, maint, tires, insurance, cashFlow, totalCost: cashFlow };
+            }, [annualMileage, fuelPrice, crvFuelEconomy]);
+
+            const caviraDetails = useMemo(() => {
+                const eff = Number(caviraEfficiency) || 1; 
+                const elec = (annualMileage / eff) * (Number(elecPrice) || 0);
+                const tax = 5615; 
+                const maint = 5000 + (annualMileage / 20000) * 1500; 
+                
+                const tires = (annualMileage / (Number(evTireLifespan) || 1)) * (Number(evTireCost) || 0); 
+                const insurance = 38000; 
+                
+                const loanInterest = actualLoanAmount * (loanRate / 100);
+                const chargerYearly = (Number(chargerInstallCost) || 0) / 10; 
+                
+                const cashFlow = elec + tax + maint + tires + insurance + loanInterest;
+                const totalCost = cashFlow + chargerYearly;
+
+                return { elec, tax, maint, tires, insurance, loanInterest, chargerYearly, cashFlow, totalCost };
+            }, [annualMileage, elecPrice, caviraEfficiency, chargerInstallCost, actualLoanAmount, loanRate, evTireCost, evTireLifespan]);
+
+            const investmentData = useMemo(() => {
+                let data = [];
+                let currentVal = actualInvestAmount;
+                let loanPrincipal = actualLoanAmount;
+                let breakEvenYear = null;
+
+                for (let i = 1; i <= 10; i++) {
+                    currentVal = currentVal * (1 + investmentRate / 100);
+                    if (currentVal >= loanPrincipal && breakEvenYear === null && fundingPlan === 'A') {
+                        breakEvenYear = i;
+                    }
+                    data.push({
+                        year: i,
+                        value: Math.round(currentVal),
+                        loan: loanPrincipal
+                    });
+                }
+                
+                const investmentFinalValue = Math.round(currentVal);
+                const netArbitrage = investmentFinalValue - loanPrincipal; 
+                const tenYearCarSavings = Math.round((crvDetails.totalCost - caviraDetails.totalCost) * 10); 
+                const finalNetWealthIncrease = netArbitrage + tenYearCarSavings; 
+
+                let currentValA = crvSellPrice;
+                for (let i = 1; i <= 10; i++) currentValA = currentValA * (1 + investmentRate / 100);
+                const baseCaviraCost = caviraDetails.totalCost - caviraDetails.loanInterest; 
+                const netWealthA = Math.round(currentValA) - totalLoanAmount + Math.round((crvDetails.totalCost - (baseCaviraCost + totalLoanAmount * (loanRate / 100))) * 10);
+                const netWealthB = -fixedPlanBLoanAmount + Math.round((crvDetails.totalCost - (baseCaviraCost + fixedPlanBLoanAmount * (loanRate / 100))) * 10);
+
+                return { data, breakEvenYear, investmentFinalValue, netArbitrage, tenYearCarSavings, finalNetWealthIncrease, netWealthA, netWealthB };
+            }, [actualInvestAmount, investmentRate, actualLoanAmount, fundingPlan, crvDetails.totalCost, caviraDetails.totalCost, crvSellPrice, totalLoanAmount, loanRate, fixedPlanBLoanAmount]);
+
+            const lumpSumVsDcaData = useMemo(() => {
+                if (fundingPlan !== 'A') return null;
+
+                let lsInvested = crvSellPrice;
+                let dcaCash = crvSellPrice;
+                let dcaInvested = 0;
+                
+                const rateM = investmentRate / 100 / 12;
+                const cashRateM = 1.5 / 100 / 12; 
+                const monthlyTransfer = crvSellPrice / dcaMonths;
+
+                const yearlyData = [];
+
+                for (let m = 1; m <= 120; m++) {
+                    lsInvested = lsInvested * (1 + rateM);
+                    if (dcaCash > 0) {
+                        let transfer = Math.min(dcaCash, monthlyTransfer);
+                        dcaCash -= transfer;
+                        dcaInvested += transfer;
+                    }
+                    dcaCash = dcaCash * (1 + cashRateM);
+                    dcaInvested = dcaInvested * (1 + rateM);
+
+                    if (m % 12 === 0) {
+                        const dcaTotal = dcaCash + dcaInvested;
+                        yearlyData.push({
+                            year: m / 12,
+                            lsValue: Math.round(lsInvested),
+                            dcaValue: Math.round(dcaTotal),
+                            diff: Math.round(lsInvested - dcaTotal)
+                        });
+                    }
+                }
+                return yearlyData;
+            }, [crvSellPrice, investmentRate, dcaMonths, fundingPlan]);
+
+            const monthlyCashFlow = useMemo(() => {
+                const crv = crvDetails.cashFlow / 12;
+                const caviraBase = (caviraDetails.cashFlow - caviraDetails.loanInterest) / 12; 
+                const planA = caviraBase + ((totalLoanAmount * (loanRate / 100)) / 12);
+                const planB = caviraBase + ((fixedPlanBLoanAmount * (loanRate / 100)) / 12);
+                return { crv, planA, planB };
+            }, [crvDetails.cashFlow, caviraDetails, totalLoanAmount, fixedPlanBLoanAmount, loanRate]);
+
+            const sipData = useMemo(() => {
+                const savings = monthlyCashFlow.crv - (fundingPlan === 'A' ? monthlyCashFlow.planA : monthlyCashFlow.planB);
+                const rate = investmentRate / 100;
+                const monthlyRate = rate / 12;
+                let data = [];
+                
+                if (savings > 0 && monthlyRate > 0) {
+                    for (let i = 1; i <= 10; i++) {
+                        const months = i * 12;
+                        const principal = savings * months;
+                        const value = savings * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+                        data.push({
+                            year: i,
+                            principal: Math.round(principal),
+                            value: Math.round(value),
+                            interest: Math.round(value - principal)
+                        });
+                    }
+                }
+                return { data, finalValue: data.length > 0 ? Math.round(data[9].value) : 0, monthlySavings: Math.round(savings) };
+            }, [monthlyCashFlow, fundingPlan, investmentRate]);
+
+            return (
+                <div className="max-w-6xl mx-auto p-4 sm:p-8">
+                    <header className="mb-10 text-center relative">
+                        <button onClick={resetToDefault} className="absolute right-0 top-0 text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-gray-600">🔄 還原預設</button>
+                        <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-900 mb-4">🚗 AI 換車財務精算儀表板</h1>
+                        <p className="text-xl text-gray-600">CR-V 6代 升級 Foxtron CAVIRA Emerge 十年成本解析</p>
+                    </header>
+
+                    <div className="mb-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+                        <button 
+                            onClick={() => setFundingPlan('A')}
+                            className={`px-8 py-4 rounded-xl text-xl font-bold transition-all shadow-md ${fundingPlan === 'A' ? 'bg-blue-600 text-white scale-105' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'}`}>
+                            方案 A：全額增貸 {formatCurrency(totalLoanAmount)} (套利)
+                        </button>
+                        <button 
+                            onClick={() => setFundingPlan('B')}
+                            className={`px-8 py-4 rounded-xl text-xl font-bold transition-all shadow-md ${fundingPlan === 'B' ? 'bg-indigo-600 text-white scale-105' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'}`}>
+                            方案 B：僅貸差額 {formatCurrency(fixedPlanBLoanAmount)} (減壓)
+                        </button>
+                    </div>
+
+                    <div className="card bg-blue-50 border-l-8 border-blue-600">
+                        <h2 className="text-3xl mb-6 font-bold">⚙️ 核心參數設定 (隨改隨存)</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                            <div>
+                                <label className="block text-lg mb-2 font-semibold">CR-V 預估賣出價</label>
+                                <input type="range" min="600000" max="1000000" step="10000" value={crvSellPrice} onChange={(e) => setCrvSellPrice(Number(e.target.value))} className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" />
+                                <div className="text-xl mt-1 font-bold text-blue-800">{formatCurrency(crvSellPrice)}</div>
+                            </div>
+                            <div>
+                                <label className="block text-lg mb-2 font-semibold">房貸增貸總金額</label>
+                                <input type="range" min="1000000" max="2000000" step="10000" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(Number(e.target.value))} disabled={fundingPlan === 'B'} className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${fundingPlan === 'B' ? 'bg-gray-200' : 'bg-gray-400'}`} />
+                                <div className={`text-xl mt-1 font-bold ${fundingPlan === 'B' ? 'text-gray-400' : 'text-blue-800'}`}>
+                                    {fundingPlan === 'A' ? formatCurrency(totalLoanAmount) : <span className="text-sm">方案B依差額自動計算不需調整</span>}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-lg mb-2 font-semibold">每年預估里程(KM)</label>
+                                <input type="range" min="10000" max="60000" step="1000" value={annualMileage} onChange={(e) => setAnnualMileage(Number(e.target.value))} className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" />
+                                <div className="text-xl mt-1 font-bold text-blue-800">{annualMileage.toLocaleString()} KM</div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 pt-4 border-t border-blue-200">
+                            <div>
+                                <label className="block text-sm text-gray-500 font-bold mb-1">CR-V油耗(km/L)</label>
+                                <input type="text" inputMode="decimal" value={crvFuelEconomy} onChange={(e) => setCrvFuelEconomy(e.target.value)} className="w-full p-2 border rounded text-lg font-bold text-gray-700" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 font-bold mb-1">電車電耗(km/度)</label>
+                                <input type="text" inputMode="decimal" value={caviraEfficiency} onChange={(e) => setCaviraEfficiency(e.target.value)} className="w-full p-2 border rounded text-lg font-bold text-gray-700" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 font-bold mb-1">95汽油單價</label>
+                                <input type="text" inputMode="decimal" value={fuelPrice} onChange={(e) => setFuelPrice(e.target.value)} className="w-full p-2 border rounded text-lg font-bold text-gray-700" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 font-bold mb-1">離峰電價(二段式)</label>
+                                <input type="text" inputMode="decimal" value={elecPrice} onChange={(e) => setElecPrice(e.target.value)} className="w-full p-2 border rounded text-lg font-bold text-gray-700" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 font-bold mb-1">充電設備與拉電費</label>
+                                <input type="text" inputMode="numeric" value={chargerInstallCost} onChange={(e) => setChargerInstallCost(e.target.value)} className="w-full p-2 border rounded text-lg font-bold text-gray-700" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 font-bold mb-1">225/55 R18 胎費(套)</label>
+                                <input type="text" inputMode="numeric" value={evTireCost} onChange={(e) => setEvTireCost(e.target.value)} className="w-full p-2 border rounded text-lg font-bold text-gray-700 bg-yellow-50" title="瑪吉斯等高CP值電胎" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-500 font-bold mb-1">電車胎壽命(km)</label>
+                                <input type="text" inputMode="numeric" value={evTireLifespan} onChange={(e) => setEvTireLifespan(e.target.value)} className="w-full p-2 border rounded text-lg font-bold text-gray-700 bg-yellow-50" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="card">
+                        <h2 className="text-3xl mb-6 border-b-2 border-gray-200 pb-2 font-bold">📊 1. 真實持有成本分析 (剔除折舊，開到壞)</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div className="bg-gray-100 p-6 rounded-xl border border-gray-300 relative">
+                                <h3 className="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">CR-V (繼續開)</h3>
+                                <ul className="text-lg space-y-3 mb-6">
+                                    <li className="flex justify-between"><span>每年油錢：</span> <span className="font-mono">{formatCurrency(crvDetails.fuel)}</span></li>
+                                    <li className="flex justify-between"><span>稅金：</span> <span className="font-mono">{formatCurrency(crvDetails.tax)}</span></li>
+                                    <li className="flex justify-between"><span>保養耗材 (高里程重罰)：</span> <span className="font-mono">{formatCurrency(crvDetails.maint)}</span></li>
+                                    <li className="flex justify-between"><span>輪胎磨耗 (依里程)：</span> <span className="font-mono">{formatCurrency(crvDetails.tires)}</span></li>
+                                    <li className="flex justify-between"><span>車輛保險 (限額/丙)：</span> <span className="font-mono">{formatCurrency(crvDetails.insurance)}</span></li>
+                                    <li className="flex justify-between font-bold border-t border-gray-300 pt-3 text-2xl">
+                                        <span>每年現金流支出：</span> <span className="danger">{formatCurrency(crvDetails.totalCost)}</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-green-50 p-6 rounded-xl border border-green-300 relative">
+                                <h3 className="text-2xl font-bold mb-4 text-green-800 border-b border-green-200 pb-2">CAVIRA Emerge (換購)</h3>
+                                <ul className="text-lg space-y-3 mb-6">
+                                    <li className="flex justify-between text-green-700 font-bold"><span>每年電費：</span> <span className="font-mono">{formatCurrency(caviraDetails.elec)}</span></li>
+                                    <li className="flex justify-between text-green-700"><span>稅金 (免稅/復徵均攤)：</span> <span className="font-mono">{formatCurrency(caviraDetails.tax)}</span></li>
+                                    <li className="flex justify-between text-green-700"><span>保養耗材：</span> <span className="font-mono">{formatCurrency(caviraDetails.maint)}</span></li>
+                                    <li className="flex justify-between text-red-600"><span>輪胎耗損攤提：</span> <span className="font-mono">{formatCurrency(caviraDetails.tires)}</span></li>
+                                    <li className="flex justify-between text-red-600"><span>車險 (乙式較貴)：</span> <span className="font-mono">{formatCurrency(caviraDetails.insurance)}</span></li>
+                                    <li className="flex justify-between text-red-600"><span>房貸增貸利息：</span> <span className="font-mono">{formatCurrency(caviraDetails.loanInterest)}</span></li>
+                                    <li className="flex justify-between text-gray-500 text-sm"><span>家充設備10年攤提：</span> <span className="font-mono">{formatCurrency(caviraDetails.chargerYearly)}</span></li>
+                                    <li className="flex justify-between font-bold border-t border-green-300 pt-3 text-2xl">
+                                        <span>每年總負擔 (含利息)：</span> <span className="success">{formatCurrency(caviraDetails.totalCost)}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="mt-8 text-2xl bg-yellow-100 p-6 rounded-xl border-l-8 border-yellow-500 shadow-sm leading-relaxed">
+                            <strong>💡 財務精算師判讀：</strong><br/>
+                            我們已將折舊剔除。結果顯示，即使加入了較貴的電車險、輪胎、房貸利息、充電樁攤提與未來恢復的稅金，由於您<strong>每年超高里程的油費支出</strong>實在太過龐大，換成電車依然能完全 Cover 所有新增成本。<br/>
+                            <span className="success mt-2 block">👉 結論：在【{fundingPlan === 'A' ? '方案 A' : '方案 B'}】下，10年實質持有成本為您省下 <strong>{formatCurrency(investmentData.tenYearCarSavings)}</strong>！</span>
+                        </div>
+                    </div>
+
+                    <div className="card border-4 border-red-200">
+                        <h2 className="text-3xl mb-6 border-b-2 border-red-200 pb-2 font-bold flex items-center gap-2">
+                            <span>⚠️</span> 終極殘酷壓力測試：逼近 50 萬公里的機械壽命考驗
+                        </h2>
+                        <div className="text-lg text-gray-700 mb-6 leading-relaxed bg-red-100 p-4 rounded-lg font-bold border border-red-300">
+                            🚨 殘酷現實：您現有的 CR-V 已開 7.1 萬公里。若未來 10 年繼續每年開 {annualMileage.toLocaleString()} 公里，您的 CR-V 總里程將突破 <span className="text-red-700 text-2xl">{Math.round(71000 + annualMileage * 10).toLocaleString()} 公里</span>！這已超越一般燃油車設計壽命，將面臨巨大的老化修車潮。
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <div className="bg-red-50 p-6 rounded-xl border border-red-300">
+                                <h3 className="text-xl font-bold text-red-800 mb-3">🛢️ CR-V (1.5T+CVT) 的 52 萬公里挑戰</h3>
+                                <p className="mb-4 text-sm text-gray-800">燃油車零組件衰退是線性的，且極度仰賴潤滑。突破 20 萬公里後，「大修費用」將無法避免：</p>
+                                <ul className="list-disc pl-5 space-y-2 text-red-900 font-medium">
+                                    <li><strong>CVT 變速箱：</strong> 鋼帶與滑輪壽命極限約 20~25 萬 km。52 萬公里生涯恐面臨 1~2 次大修或更換 (預估 6~10 萬/次)。</li>
+                                    <li><strong>1.5T 渦輪增壓器：</strong> 長期高溫高壓，約 15~20 萬 km 可能漏油或軸心損壞需更換 (預估 3~5 萬/次)。</li>
+                                    <li><strong>老化耗材潮：</strong> 引擎腳、冷氣壓縮機、水泵浦、發電機，幾乎都會經歷一到兩輪的故障汰換。</li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-blue-50 p-6 rounded-xl border border-blue-300">
+                                <h3 className="text-xl font-bold text-blue-800 mb-3">🔋 CAVIRA Emerge 的 45 萬公里挑戰</h3>
+                                <p className="mb-4 text-sm text-gray-800">電車沒有複雜的引擎與變速箱，機械大修機率低。最大的風險在於「電池健康度」：</p>
+                                <ul className="list-disc pl-5 space-y-2 text-blue-900 font-medium">
+                                    <li><strong>提早失去原廠保固：</strong> 一般保固為 8 年/16 萬公里。以您的跑法，預計在 <strong>第 4 年初就會過保</strong>。</li>
+                                    <li><strong className="text-blue-700 text-lg block bg-blue-100 p-1 rounded mt-2">💎 商用級硬體下放 (定心丸)：</strong> 原廠對「同一套電池與底盤」的營業車開出 <strong>6年 / 60萬公里</strong> 的保固！這代表這套電池在設計時的極限耐受度就是 60 萬公里。這大大降低了過保後發生災難性故障的機率！</li>
+                                    <li><strong>衰退風險：</strong> 第 8 年起電池健康度可能降至 80% 以下，需增加充電頻率；若單體模組故障，需自費約 5~10 萬更換。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="card">
+                        <h2 className="text-3xl mb-6 border-b-2 border-gray-200 pb-2 font-bold flex justify-between items-center">
+                            <span>📈 2. 資金策略與投資套利分析</span>
+                        </h2>
+                        
+                        <div className="mb-8 p-6 bg-indigo-50 border border-indigo-200 rounded-xl shadow-sm">
+                            {fundingPlan === 'A' ? (
+                                <div className="text-xl mb-6 leading-relaxed">
+                                    <h3 className="text-2xl font-bold mb-4 text-indigo-800">💼 方案 A 策略分析：保留現金，創造套利</h3>
+                                    <p>您選擇增貸 <strong>{formatCurrency(actualLoanAmount)}</strong> 支付新車與建置費。賣掉 CR-V 的 <strong>{formatCurrency(crvSellPrice)}</strong> 將完整投入股市進行 <strong>{investmentRate}%</strong> 複利滾存，利用利差創造財富。</p>
+                                </div>
+                            ) : (
+                                <div className="text-xl mb-6 leading-relaxed">
+                                    <h3 className="text-2xl font-bold mb-4 text-indigo-800">🛡️ 方案 B 策略分析：賣車折抵，減輕負債</h3>
+                                    <p>您選擇將賣掉 CR-V 的 <strong>{formatCurrency(crvSellPrice)}</strong> 全數抵扣新車。您僅需增貸 <strong>{formatCurrency(actualLoanAmount)}</strong>。此方案雖無大筆資金套利，但每月現金流負擔極輕。</p>
+                                </div>
+                            )}
+
+                            <h3 className="text-2xl font-bold mb-4 text-red-800">🏦 實際增貸 {formatCurrency(actualLoanAmount)} 之利息明細 (只繳息)</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+                                <div className="bg-white p-6 rounded-lg shadow border border-red-100">
+                                    <div className="text-gray-500 mb-2 font-bold text-lg">每月繳息負擔</div>
+                                    <div className="text-4xl font-extrabold text-red-600">{formatCurrency((actualLoanAmount * (loanRate / 100)) / 12)}</div>
+                                </div>
+                                <div className="bg-white p-6 rounded-lg shadow border border-red-100">
+                                    <div className="text-gray-500 mb-2 font-bold text-lg">每年繳息金額</div>
+                                    <div className="text-4xl font-extrabold text-red-600">{formatCurrency(actualLoanAmount * (loanRate / 100))}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {fundingPlan === 'A' && (
+                            <>
+                                <div className="bg-white p-6 my-6 rounded-lg border border-gray-300 shadow-inner">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4">
+                                        <h3 className="text-2xl font-bold text-blue-800 mb-4 sm:mb-0">🎯 投資標的選擇與單筆/定期定額對決：</h3>
+                                        <div className="flex items-center gap-3 bg-gray-100 p-2 rounded-lg">
+                                            <span className="font-bold text-gray-700">選擇標的：</span>
+                                            <select value={investTarget} onChange={handleInvestTargetChange} className="p-2 text-lg font-bold text-blue-700 border-2 border-blue-300 rounded cursor-pointer outline-none focus:border-blue-500">
+                                                <option value="0050">元大台灣50 (0050)</option>
+                                                <option value="006208">富邦台50 (006208)</option>
+                                                <option value="00713">元大高息低波 (00713)</option>
+                                                <option value="00878">國泰永續高股息 (00878)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-6 mb-6">
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                            <label className="block text-lg mb-2 font-bold text-blue-900">自訂年化報酬率 (%)</label>
+                                            <input type="range" min="3.0" max="15.0" step="0.5" value={investmentRate} onChange={(e) => setInvestmentRate(Number(e.target.value))} className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-blue-300" />
+                                            <div className="text-2xl mt-2 font-bold text-blue-800">{investmentRate.toFixed(1)} %</div>
+                                        </div>
+                                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                            <h4 className="text-lg font-bold text-green-900 mb-2">分批扣款期數：</h4>
+                                            <select value={dcaMonths} onChange={(e) => setDcaMonths(Number(e.target.value))} className="w-full p-2 text-base font-bold text-purple-700 border border-purple-300 rounded">
+                                                <option value={12}>分 12 個月 (1年) 扣完</option>
+                                                <option value={24}>分 24 個月 (2年) 扣完</option>
+                                                <option value={36}>分 36 個月 (3年) 扣完</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full text-center text-lg bg-white rounded-lg overflow-hidden shadow border border-purple-200">
+                                            <thead className="bg-purple-800 text-white text-xl">
+                                                <tr>
+                                                    <th className="py-4 px-4">年份</th>
+                                                    <th className="py-4 px-4">一次 All-in 期末價值</th>
+                                                    <th className="py-4 px-4 bg-purple-700">分 {dcaMonths} 個月投入價值</th>
+                                                    <th className="py-4 px-4 bg-red-900">對照：房貸本金</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {lumpSumVsDcaData.map((row) => (
+                                                    <tr key={row.year} className={row.lsValue >= actualLoanAmount ? "bg-green-50 font-bold" : "hover:bg-gray-50"}>
+                                                        <td className="py-4 px-4">第 {row.year} 年</td>
+                                                        <td className="py-4 px-4 text-blue-700">{formatCurrency(row.lsValue)}</td>
+                                                        <td className="py-4 px-4 text-purple-700">{formatCurrency(row.dcaValue)}</td>
+                                                        <td className="py-4 px-4 text-red-600">{formatCurrency(actualLoanAmount)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                {/* ⚠️ 財務精算師的自我揭露：盲點與風險警示 ⚠️ */}
+                                <div className="mt-8 bg-red-50 border-l-8 border-red-600 p-6 rounded-r-xl shadow-md">
+                                    <h3 className="text-2xl font-extrabold text-red-800 mb-4 flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                        財務精算師的自我揭露：ETF 投資模型的 4 大盲點與風險
+                                    </h3>
+                                    <p className="text-lg text-gray-800 mb-4 font-semibold">這套模型非常完美，但在真實的資本市場與人性中，您必須意識到以下殘酷的盲點：</p>
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <div className="bg-white p-4 rounded border border-red-200">
+                                            <h4 className="text-xl font-bold text-red-700 mb-2">1. 報酬順序風險 (Sequence Risk)</h4>
+                                            <p className="text-gray-700">模型假設每年穩穩賺 {investmentRate}%。但現實股市是跳動的，若您在投入的第一年就遇到金融海嘯大跌 30% (80萬剩56萬)，即使未來每年大漲，要爬回本金也要花極長的時間，複利魔法會大打折扣。</p>
+                                        </div>
+                                        <div className="bg-white p-4 rounded border border-red-200">
+                                            <h4 className="text-xl font-bold text-red-700 mb-2">2. 「配息誘惑」與稅金摩擦</h4>
+                                            <p className="text-gray-700">含息年化報酬率的前提是：<strong className="text-red-600">您拿到的每一筆股息都必須「一毛不拔」地立刻買回 ETF (DRIP)</strong>。若您把股息拿去花掉，複利就會斷裂。且高股息配息需扣二代健保補充保費，這是隱藏摩擦成本。</p>
+                                        </div>
+                                        <div className="bg-white p-4 rounded border border-red-200">
+                                            <h4 className="text-xl font-bold text-red-700 mb-2">3. 「倖存者偏差」與失落的十年</h4>
+                                            <p className="text-gray-700">過去 10 年台股年化超過 10% 是基於史詩級的科技多頭。若未來十年發生宏觀經濟停滯（如 2000-2010年），報酬率降至 4% 以下，甚至低於您的房貸利率 {loanRate}%，您的「利差套利」將變成虧本做白工。</p>
+                                        </div>
+                                        <div className="bg-white p-4 rounded border border-red-200">
+                                            <h4 className="text-xl font-bold text-red-700 mb-2">4. 人性的「抱單極限」</h4>
+                                            <p className="text-gray-700">身上背著 140 萬貸款，看到股票跌掉 30 萬時，多數人的防線會崩潰而在「最低點」認賠殺出還債。本模型假設您有極端的紀律，能不看盤死抱 10 年，這是對人性最大的考驗。</p>
+                                        </div>
+                                    </div>
+                                    <p className="mt-4 text-center font-bold text-red-900 bg-red-100 p-2 rounded">
+                                        👉 專家建議：若您自認無法承受上述風險，請果斷切換至【方案 B：僅貸差額】，放棄套利，享受無壓力的現金流。
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                        
+                        <div className="mt-8 bg-gray-900 text-white p-8 rounded-2xl shadow-xl border border-gray-700">
+                            <h3 className="text-3xl text-yellow-400 font-extrabold mb-6">🏆 【終局結算】十年後您的整體財富變化？</h3>
+                            <p className="text-lg mb-6 text-gray-300">
+                                結清房貸本金後，您的實質淨資產變化為：
+                            </p>
+                            
+                            <div className="grid md:grid-cols-3 gap-6 text-center">
+                                <div className="bg-gray-800 p-6 rounded-xl border border-gray-600">
+                                    <div className="text-gray-400 mb-2">① 十年投資帳戶終值</div>
+                                    <div className="text-3xl font-bold text-blue-400">+{formatCurrency(investmentData.investmentFinalValue)}</div>
+                                    <div className="text-sm mt-2 text-gray-500">{fundingPlan === 'A' ? `投入 ${investTarget} 滾存` : '無投資'}</div>
+                                </div>
+                                <div className="bg-gray-800 p-6 rounded-xl border border-gray-600">
+                                    <div className="text-gray-400 mb-2">② 償還實際增貸本金</div>
+                                    <div className="text-3xl font-bold text-red-400">-{formatCurrency(actualLoanAmount)}</div>
+                                </div>
+                                <div className="bg-gray-800 p-6 rounded-xl border border-gray-600">
+                                    <div className="text-gray-400 mb-2">③ 十年養車省下的淨現金</div>
+                                    <div className="text-3xl font-bold text-green-400">+{formatCurrency(investmentData.tenYearCarSavings)}</div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-8 p-6 bg-yellow-500 text-gray-900 rounded-xl text-center shadow-lg border-2 border-yellow-300">
+                                <div className="text-xl font-bold mb-2">十年後，您實質多出來的「家庭淨資產」總額高達：</div>
+                                <div className="text-5xl sm:text-6xl font-extrabold mb-4 drop-shadow-md">
+                                    {formatCurrency(investmentData.finalNetWealthIncrease)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="card">
+                        <h2 className="text-3xl mb-6 border-b-2 border-gray-200 pb-2 font-bold">⚡ 3. 錶後拉電與 114年最新電價評估</h2>
+                        <div className="grid md:grid-cols-2 gap-8 text-xl">
+                            <div>
+                                <p className="mb-4">平均每個月需充電約 <strong className="text-blue-700">{Math.round(annualMileage / (Number(caviraEfficiency)||1) / 12)} 度電</strong>。</p>
+                                <ul className="space-y-4">
+                                    <li className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                                        <strong>✅ 專家推薦：簡易型時間電價(二段式)</strong><br/>
+                                        依據 114/10/01 最新電價，離峰時段(半夜)均為 <strong>2.06 元</strong>。而二段式的尖峰時段僅 5.16 元，遠低於三段式的 7.13 元，對家庭傍晚用電容錯率高。
+                                    </li>
+                                </ul>
+                            </div>
+                            <div className="bg-gray-800 text-white p-6 rounded-xl">
+                                <h3 className="text-2xl text-yellow-400 mb-4 font-bold">💡 給家庭的改變建議</h3>
+                                <ul className="list-disc pl-6 space-y-3">
+                                    <li>電動車設定為 <strong>半夜 00:00 後才開始充電</strong>。</li>
+                                    <li>採用「錶後拉電+二段式時間電價」，總電費甚至可能比買車前低！</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="card border-4 border-indigo-500 shadow-2xl relative overflow-hidden mt-8">
+                        <div className="absolute top-0 right-0 bg-indigo-500 text-white px-6 py-2 rounded-bl-2xl font-bold text-xl shadow-md">
+                            專家最終建議
+                        </div>
+                        <h2 className="text-3xl mb-8 border-b-2 border-indigo-200 pb-2 font-bold text-indigo-900">👑 4. 雙方案直球對決 ＆ 每月養車淨現金流</h2>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="bg-gray-100 p-6 rounded-2xl border-2 border-gray-300 flex flex-col justify-between">
+                                <div>
+                                    <div className="text-center mb-4">
+                                        <span className="bg-gray-400 text-white px-4 py-1 rounded-full text-sm font-bold">維持現狀</span>
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-2 text-center text-gray-800">繼續死忠開 CR-V</h3>
+                                    <div className="text-center bg-white py-4 rounded-xl shadow-sm border border-gray-200 mb-6 mt-4">
+                                        <div className="text-gray-500 text-sm font-bold mb-1">每月養車真實現金流出</div>
+                                        <div className="text-4xl font-extrabold text-red-600">{formatCurrency(monthlyCashFlow.crv)}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-400 flex flex-col justify-between transform md:-translate-y-2 shadow-lg relative">
+                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow">
+                                    財富最大化
+                                </div>
+                                <div>
+                                    <div className="text-center mb-4 mt-2">
+                                        <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold">方案 A (套利)</span>
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-2 text-center text-blue-900">全額增貸 {formatCurrency(totalLoanAmount)}</h3>
+                                    <div className="text-center bg-white py-4 rounded-xl shadow border border-blue-200 mb-6 mt-4">
+                                        <div className="text-gray-500 text-sm font-bold mb-1">每月養車(含繳息)現金流出</div>
+                                        <div className="text-4xl font-extrabold text-blue-600">{formatCurrency(monthlyCashFlow.planA)}</div>
+                                        <div className="text-base text-green-600 mt-2 font-bold bg-green-50 py-1 rounded">✅ 每月手頭多出 {formatCurrency(monthlyCashFlow.crv - monthlyCashFlow.planA)}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-indigo-50 p-6 rounded-2xl border-2 border-indigo-400 flex flex-col justify-between">
+                                <div>
+                                    <div className="text-center mb-4">
+                                        <span className="bg-indigo-600 text-white px-4 py-1 rounded-full text-sm font-bold">方案 B (減壓)</span>
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-2 text-center text-indigo-900">僅貸差額 {formatCurrency(fixedPlanBLoanAmount)}</h3>
+                                    <div className="text-center bg-white py-4 rounded-xl shadow border border-indigo-200 mb-6 mt-4">
+                                        <div className="text-gray-500 text-sm font-bold mb-1">每月養車(含繳息)現金流出</div>
+                                        <div className="text-4xl font-extrabold text-indigo-600">{formatCurrency(monthlyCashFlow.planB)}</div>
+                                        <div className="text-base text-green-600 mt-2 font-bold bg-green-50 py-1 rounded">✅ 每月手頭多出 {formatCurrency(monthlyCashFlow.crv - monthlyCashFlow.planB)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-green-50 p-6 rounded-xl border border-green-300 shadow-sm mt-8">
+                            <h4 className="text-2xl font-bold text-green-900 mb-4">📈 紀律的考驗：這筆「每月多出來的錢」該去哪裡？</h4>
+                            <p className="text-xl leading-relaxed text-gray-800 mb-4">
+                                不管選哪一案，您每月都省下約 <strong className="text-blue-700 text-2xl bg-blue-100 px-2 rounded">{formatCurrency(sipData.monthlySavings)}</strong>。<br/>
+                                <span className="text-red-600 font-bold">盲點警告：如果這筆錢沒有設定自動扣款去買 ETF，它就會變成大餐或娛樂花掉，10年後歸零！</span> 假若您維持極端紀律，投入 {investmentRate}% 的標的：
+                            </p>
+                            
+                            <div className="bg-white p-6 rounded-lg border border-green-400 text-center mb-6 shadow-md">
+                                <div className="text-gray-500 text-lg font-bold mb-2">十年後，這筆沒被油錢吃掉的現金將嚴格複利滾成：</div>
+                                <div className="text-5xl font-extrabold text-green-600">
+                                    {formatCurrency(sipData.finalValue)}
+                                </div>
+                            </div>
+                            
+                            <div className="overflow-x-auto mb-6">
+                                <table className="min-w-full text-center text-lg bg-white rounded-lg overflow-hidden shadow border border-green-300">
+                                    <thead className="bg-green-700 text-white text-xl">
+                                        <tr>
+                                            <th className="py-3 px-4">年份</th>
+                                            <th className="py-3 px-4">累積投入本金<br/><span className="text-sm font-normal text-green-200">(死守紀律省下的錢)</span></th>
+                                            <th className="py-3 px-4">複利孳息<br/><span className="text-sm font-normal text-green-200">(DRIP 股息再投入)</span></th>
+                                            <th className="py-3 px-4">期末總價值</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-green-100">
+                                        {sipData.data.map((row) => (
+                                            <tr key={row.year} className="hover:bg-green-50 transition-colors">
+                                                <td className="py-3 px-4 font-bold text-gray-700">第 {row.year} 年</td>
+                                                <td className="py-3 px-4 text-gray-600">{formatCurrency(row.principal)}</td>
+                                                <td className="py-3 px-4 text-green-600 font-bold">+{formatCurrency(row.interest)}</td>
+                                                <td className="py-3 px-4 font-bold text-green-800 text-xl">{formatCurrency(row.value)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
