@@ -50,14 +50,19 @@
         <div class="z-10">
             <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-tight pb-1">
                 🚗 零元換車精算終端
-                <span class="text-sm md:text-base bg-cyan-950/80 text-cyan-300 px-3 py-1.5 rounded-lg align-middle ml-3 font-bold border border-cyan-500/30 tracking-normal inline-block mt-2 md:mt-0">CFO PRO v4.0 (雙時區基準版)</span>
+                <span class="text-sm md:text-base bg-cyan-950/80 text-cyan-300 px-3 py-1.5 rounded-lg align-middle ml-3 font-bold border border-cyan-500/30 tracking-normal inline-block mt-2 md:mt-0">CFO PRO v4.1 (智能狀態記憶)</span>
             </h1>
             <p class="text-slate-400 mt-3 text-base md:text-lg">高階資金池隔離系統 × 10檔ETF真實回測矩陣</p>
         </div>
-        <button onclick="resetDefaults()" class="w-full md:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-xl text-base font-bold transition-colors z-10 flex items-center justify-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-            系統參數重置
-        </button>
+        <div class="flex flex-col md:flex-row gap-3 z-10 w-full md:w-auto mt-4 md:mt-0">
+            <button id="btn_share" onclick="copyShareLink()" class="w-full md:w-auto px-5 py-3 bg-cyan-950 hover:bg-cyan-900 text-cyan-400 border border-cyan-700/50 rounded-xl text-sm md:text-base font-bold transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                🔗 複製專屬連結 (可加書籤)
+            </button>
+            <button onclick="resetDefaults()" class="w-full md:w-auto px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-xl text-sm md:text-base font-bold transition-colors flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                系統重置
+            </button>
+        </div>
     </div>
 
     <!-- 方案切換 (Sticky) -->
@@ -371,7 +376,7 @@
         "00878": { name: "00878 國泰永續高股息", rate: 7.0, desc: "人氣最高高股息，具備ESG抗跌屬性。成立以來年化約 9~10%，保守設定 7.0%。防禦力佳。" },
         "00713": { name: "00713 元大台灣高息低波", rate: 7.5, desc: "因子選股極其優異，空頭市場極度抗跌。近5年含息年化約 12~14%，保守設定 7.5%。" },
         "00919": { name: "00919 群益台灣精選高息", rate: 7.5, desc: "宣告殖利率常破10%，資金動能強勁。成立以來年化超越 15%，保守設定 7.5%。" },
-        "00929": { name: "00929 復華台灣科技優息", rate: 7.0, desc: "100% 聚焦科技股的月配息ETF。受單一產業週期影響大，波動稍高。保守設定 7.0%。" },
+        "00929": { name: "00929 復華台灣科技優息", rate: 7.0, desc: "100% 聚焦科技股的月配息ETF。受單一產業週期影響大，波動稍高. 保守設定 7.0%。" },
         "00692": { name: "00692 富邦公司治理", rate: 7.5, desc: "類大盤市值型，加入公司治理因子，歷史報酬長年微幅打敗大盤。保守設定 7.5%。" },
         "00733": { name: "00733 富邦臺灣中小", rate: 9.0, desc: "極致動能選股因子，多頭爆發力極強(近5年年化逾20%)，但空頭回檔極深。高風險高報酬，保守設定 9.0%。" },
         "00662": { name: "00662 富邦NASDAQ", rate: 10.0, desc: "追蹤美股那斯達克100指數，純粹的全球科技巨頭。近10年含息年化破 16%，保守設定 10.0%。" }
@@ -420,12 +425,32 @@
     const fmtNum = (num) => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 }).format(num);
 
     function loadData() {
-        const saved = localStorage.getItem('carCalcDataDualZone');
-        const data = saved ? JSON.parse(saved) : defaultData;
+        const urlParams = new URLSearchParams(window.location.search);
+        let data = {};
+        
+        if (Array.from(urlParams.keys()).length > 0) {
+            // 優先從 URL 讀取參數 (達成跨裝置分享與書籤記憶功能)
+            for (let key of urlParams.keys()) {
+                let val = urlParams.get(key);
+                if (!isNaN(val) && val.trim() !== '') val = parseFloat(val);
+                data[key] = val;
+            }
+            data = { ...defaultData, ...data }; // 補齊可能缺失的預設值
+        } else {
+            // 否則 fallback 退回讀取 LocalStorage
+            const saved = localStorage.getItem('carCalcDataDualZone');
+            data = saved ? JSON.parse(saved) : defaultData;
+        }
+
         Object.keys(defaultData).forEach(key => {
             const el = document.getElementById(key);
             if(el) { el.value = data[key]; }
         });
+        
+        // 同步更新自訂拉桿數值
+        const invSlider = document.getElementById('inv_rate_slider');
+        if(invSlider && data.inv_rate) invSlider.value = data.inv_rate;
+
         setScheme(data.scheme || 'A');
         highlightEtfRow(data.etf_select || '00878');
     }
@@ -437,13 +462,53 @@
             if(el) { data[key] = (el.type === 'number' || el.type === 'range') ? parseFloat(el.value) || 0 : el.value; }
         });
         data.scheme = currentScheme;
+        
+        // 儲存至本機端 (同一台裝置)
         localStorage.setItem('carCalcDataDualZone', JSON.stringify(data));
+        
+        // 同步更新 URL 網址列參數 (不重新載入頁面)，讓使用者隨時可將目前狀態加入書籤
+        // ⚠️ 修正防護：在 Iframe、Blob 或沙盒限制環境下，不重新導向網址列，避免 SecurityError 崩潰
+        try {
+            const params = new URLSearchParams(data);
+            window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+        } catch (e) {
+            console.warn("無法同步 URL 參數（這通常發生在 iframe、安全沙盒限制或 blob 來源的預覽環境中）：", e);
+        }
+        
         return data;
+    }
+
+    window.copyShareLink = function() {
+        const url = window.location.href;
+        const el = document.createElement('textarea');
+        el.value = url;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        
+        const btn = document.getElementById('btn_share');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✅ 連結已成功複製！';
+        btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-400');
+        btn.classList.remove('bg-cyan-950', 'text-cyan-400', 'border-cyan-700/50');
+        
+        setTimeout(() => { 
+            btn.innerHTML = originalText; 
+            btn.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-400');
+            btn.classList.add('bg-cyan-950', 'text-cyan-400', 'border-cyan-700/50');
+        }, 2000);
     }
 
     window.resetDefaults = function() {
         if(confirm("確定要將所有參數與投資設定還原到初始狀態嗎？")) { 
             localStorage.removeItem('carCalcDataDualZone'); 
+            // ⚠️ 修正防護：避免清空網址列參數時觸發安全性限制錯誤
+            try {
+                window.history.replaceState({}, '', window.location.pathname);
+            } catch (e) {
+                console.warn("無法清空 URL 參數：", e);
+            }
             loadData(); 
             calculate(); 
         }
