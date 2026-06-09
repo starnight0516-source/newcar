@@ -34,6 +34,10 @@
         /* 科技發光效果 */
         .glow-cyan { box-shadow: 0 0 25px rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.4); }
         .glow-emerald { box-shadow: 0 0 25px rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); }
+        
+        /* 表格高亮動畫 */
+        .highlight-row { background-color: rgba(16, 185, 129, 0.15) !important; border-left-color: #10b981 !important; }
+        .transition-row { transition: all 0.3s ease; border-left-width: 4px; border-left-color: transparent; }
     </style>
 </head>
 <body class="p-4 md:p-8 pb-24 text-base md:text-lg">
@@ -46,9 +50,9 @@
         <div class="z-10">
             <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-tight pb-1">
                 🚗 零元換車精算終端
-                <span class="text-sm md:text-base bg-cyan-950/80 text-cyan-300 px-3 py-1.5 rounded-lg align-middle ml-3 font-bold border border-cyan-500/30 tracking-normal inline-block mt-2 md:mt-0">CFO PRO v3.0</span>
+                <span class="text-sm md:text-base bg-cyan-950/80 text-cyan-300 px-3 py-1.5 rounded-lg align-middle ml-3 font-bold border border-cyan-500/30 tracking-normal inline-block mt-2 md:mt-0">CFO PRO v4.0 (雙時區基準版)</span>
             </h1>
-            <p class="text-slate-400 mt-3 text-base md:text-lg">高階資金池隔離系統 × 10年期雙引擎財報演算法</p>
+            <p class="text-slate-400 mt-3 text-base md:text-lg">高階資金池隔離系統 × 10檔ETF真實回測矩陣</p>
         </div>
         <button onclick="resetDefaults()" class="w-full md:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-xl text-base font-bold transition-colors z-10 flex items-center justify-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -81,7 +85,7 @@
             <div class="space-y-5 p-5 md:p-6 bg-slate-950/50 rounded-2xl border border-slate-800/60">
                 <h3 class="text-lg font-bold text-cyan-500 border-b border-slate-800 pb-2 tracking-wide">📅 基礎評估設定</h3>
                 <div><label class="block text-sm font-bold text-slate-400 mb-2">每年行駛里程 (km)</label><input type="number" id="annual_km" class="w-full p-3.5 bg-slate-900 border border-slate-700 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white font-mono text-xl transition-all" oninput="calculate()"></div>
-                <div><label class="block text-sm font-bold text-slate-400 mb-2">專案評估年限 (年)</label><input type="number" id="years" class="w-full p-3.5 bg-slate-900 border border-slate-700 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white font-mono text-xl transition-all" oninput="calculate()"></div>
+                <div><label class="block text-sm font-bold text-slate-400 mb-2">專案評估與貸款年限 (年) 🎯</label><input type="number" id="years" class="w-full p-3.5 bg-slate-900 border border-emerald-700/50 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-emerald-400 font-mono text-xl transition-all glow-emerald" oninput="calculate()"></div>
             </div>
             
             <!-- CRV -->
@@ -90,7 +94,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-sm font-bold text-slate-400 mb-2">預估殘值 (元)</label><input type="number" id="crv_sell_price" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white font-mono text-lg transition-all" oninput="handleSellPriceChange()"></div>
                     <div><label class="block text-sm font-bold text-slate-400 mb-2">油耗 (km/L)</label><input type="number" id="crv_kml" step="0.1" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white font-mono text-lg transition-all" oninput="calculate()"></div>
-                    <div><label class="block text-sm font-bold text-slate-400 mb-2">油價 (元/L)</label><input type="number" id="gas_price" step="0.1" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white font-mono text-lg transition-all" oninput="calculate()"></div>
+                    <div><label class="block text-sm font-bold text-slate-400 mb-2">今日油價 (元/L)</label><input type="number" id="gas_price" step="0.1" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white font-mono text-lg transition-all" oninput="calculate()"></div>
                     <div><label class="block text-sm font-bold text-slate-400 mb-2">目前里程 (km)</label><input type="number" id="crv_current_km" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white font-mono text-lg transition-all" oninput="calculate()"></div>
                 </div>
             </div>
@@ -139,7 +143,7 @@
             </button>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="relative">
                 <label class="block text-sm font-bold text-emerald-200/70 mb-2">資金1：單筆投入 (元)</label>
                 <input type="number" id="custom_lumpsum" class="w-full p-3.5 bg-slate-950 border border-emerald-700/50 rounded-xl text-emerald-400 font-mono text-xl font-bold focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 outline-none transition-all" oninput="calculate()">
@@ -153,21 +157,40 @@
                 <div class="text-xs text-emerald-500/70 mt-2">ex: 換車後省下的無痛結餘</div>
             </div>
             
-            <div>
-                <label class="block text-sm font-bold text-emerald-200/70 mb-2">回測 ETF 標的選擇</label>
+            <div class="lg:col-span-2">
+                <label class="block text-sm font-bold text-emerald-200/70 mb-2">選擇回測 ETF 標的 (Top 10 精選)</label>
                 <select id="etf_select" class="w-full p-3.5 bg-slate-950 border border-emerald-700/50 rounded-xl text-slate-200 text-lg font-bold focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 outline-none" onchange="updateEtfRate()">
-                    <option value="0050">0050/006208 (大盤 8.0%)</option>
-                    <option value="00713">00713 (低波 6.5%)</option>
-                    <option value="00878" selected>00878 (高股息 7.0%)</option>
+                    <!-- 動態由 JS 產生選項 -->
                 </select>
             </div>
             
-            <div>
-                <label class="block text-sm font-bold text-emerald-200/70 mb-2">自訂年化報酬率 (%)</label>
+            <div class="lg:col-span-4 mt-2">
+                <label class="block text-sm font-bold text-emerald-200/70 mb-2">自訂真實年化報酬率 (CAGR %)</label>
                 <div class="flex items-center gap-3">
-                    <input type="range" id="inv_rate_slider" min="3" max="15" step="0.5" class="w-full accent-emerald-500" oninput="document.getElementById('inv_rate').value=this.value; calculate()">
-                    <input type="number" id="inv_rate" step="0.5" class="w-20 p-3 bg-slate-950 border border-emerald-700/50 rounded-xl text-center font-bold text-emerald-400 font-mono text-xl outline-none" oninput="document.getElementById('inv_rate_slider').value=this.value; calculate()">
+                    <input type="range" id="inv_rate_slider" min="3" max="15" step="0.1" class="w-full accent-emerald-500" oninput="document.getElementById('inv_rate').value=this.value; calculate()">
+                    <input type="number" id="inv_rate" step="0.1" class="w-24 p-3 bg-slate-950 border border-emerald-700/50 rounded-xl text-center font-bold text-emerald-400 font-mono text-xl outline-none" oninput="document.getElementById('inv_rate_slider').value=this.value; calculate()">
                 </div>
+            </div>
+        </div>
+
+        <!-- ETF 量化回測資料庫 -->
+        <div class="border-t border-emerald-900/50 pt-6 mt-4">
+            <h4 class="text-emerald-400 font-bold mb-4 flex items-center gap-2 text-lg">
+                <span>📚</span> ETF 量化回測資料庫 (近10年真實績效參考)
+            </h4>
+            <div class="overflow-x-auto table-scroll rounded-xl border border-slate-700 bg-slate-950/50">
+                <table class="w-full text-left text-sm md:text-base whitespace-nowrap">
+                    <thead class="bg-slate-900 text-emerald-500 border-b border-emerald-900/50">
+                        <tr>
+                            <th class="p-4 font-bold tracking-wider w-1/4">標的代號與名稱</th>
+                            <th class="p-4 font-bold tracking-wider text-center w-1/6">CFO 保守預期</th>
+                            <th class="p-4 font-bold tracking-wider w-7/12">量化特徵與歷史真實績效</th>
+                        </tr>
+                    </thead>
+                    <tbody id="etf_database_body" class="divide-y divide-slate-800/80 text-slate-300">
+                        <!-- JS 動態產生 ETF 列表 -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -232,56 +255,80 @@
             
             <div class="p-6 md:p-8 rounded-2xl bg-[#2a0a18] border border-[#5c162e] flex flex-col justify-center relative overflow-hidden shadow-[inset_0_0_40px_rgba(159,18,57,0.2)]">
                 <div class="absolute -right-6 -bottom-6 text-9xl opacity-10">🔥</div>
-                <div class="text-sm text-rose-400 font-bold mb-2 tracking-widest uppercase">10年純消耗對決 (不含投資)</div>
+                <div class="text-sm text-rose-400 font-bold mb-2 tracking-widest uppercase"><span id="loss_title_years"></span>年純消耗對決 (不含投資)</div>
                 <div class="text-sm text-slate-400 mb-4 font-medium leading-relaxed">繼續開油車 vs 換電車<br>(已計入付給銀行的房貸利息)</div>
                 <div class="text-2xl md:text-3xl font-black font-mono z-10" id="total_loss_diff"></div>
             </div>
         </div>
     </div>
 
-    <!-- 終局財報 -->
+    <!-- 🌟 全新：雙時區終局財報 -->
     <div class="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-950 to-black p-6 md:p-12 rounded-3xl shadow-2xl border border-slate-800 fade-in">
         <h2 class="text-2xl md:text-4xl font-black mb-4 text-white flex flex-col md:flex-row md:justify-between md:items-center gap-6">
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">🌟 終局財報：10年資產負債大結算</span>
-            <span class="text-sm md:text-base bg-rose-950/80 text-rose-300 px-4 py-2 rounded-xl font-bold border border-rose-800/50 shadow-lg" id="badge_principal_unified"></span>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">🌟 雙時區大結算：標準10年 vs 自訂終局</span>
         </h2>
         <p class="text-base md:text-xl text-slate-300 mb-10 leading-relaxed font-medium">
             依據自訂的 
             <strong class="text-cyan-300 bg-cyan-950/50 px-2 py-1 rounded font-mono border border-cyan-800">單筆 <span id="summary_lumpsum"></span></strong> 與 
             <strong class="text-cyan-300 bg-cyan-950/50 px-2 py-1 rounded font-mono border border-cyan-800">每月 <span id="summary_monthly"></span></strong>，
-            投入 <span id="unified_etf_name" class="text-emerald-400 font-black"></span> 進行 <span id="unified_rate" class="font-black text-emerald-400 font-mono"></span>% 複利滾存：
+            投入 <span id="unified_etf_name" class="text-emerald-400 font-black"></span> (年化實質 <span id="unified_rate" class="font-black text-emerald-400 font-mono"></span>%) 進行複利滾存：
         </p>
-        
-        <!-- 雙引擎結果 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-            <div class="bg-slate-900/50 p-8 rounded-2xl border border-slate-700/50 relative overflow-hidden backdrop-blur-sm">
-                <div class="absolute -right-4 -bottom-4 text-8xl opacity-10">💰</div>
-                <div class="text-sm text-slate-400 mb-2 font-bold tracking-widest uppercase">引擎一：單筆投入 10年後總值</div>
-                <div class="text-4xl md:text-5xl font-black text-white font-mono tracking-tight" id="unified_engine1_val"></div>
-                <div id="unified_engine1_desc" class="text-sm mt-4 font-medium"></div>
+
+        <!-- 🚀 新增：預設 10 年基準快照 (Standard 10Y Benchmark) -->
+        <h3 class="text-xl font-bold text-slate-400 mb-4 border-b border-slate-800 pb-2 flex items-center gap-2">
+            <span>⏳</span> 【標準快照】10 年後資產負債基準線
+        </h3>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-center mb-12 opacity-80 hover:opacity-100 transition-opacity">
+            <div class="p-5 bg-slate-900 rounded-2xl border border-slate-700/50">
+                <div class="text-slate-400 text-xs font-bold mb-2 uppercase tracking-widest">10年後 ETF 總資產</div>
+                <div class="text-3xl font-black text-cyan-500 font-mono tracking-tighter" id="assets_10y"></div>
             </div>
-            <div class="bg-slate-900/50 p-8 rounded-2xl border border-slate-700/50 relative overflow-hidden backdrop-blur-sm">
-                <div class="absolute -right-4 -bottom-4 text-8xl opacity-10">📈</div>
-                <div class="text-sm text-slate-400 mb-2 font-bold tracking-widest uppercase">引擎二：定期定額 10年後總值</div>
-                <div class="text-4xl md:text-5xl font-black text-white font-mono tracking-tight" id="unified_engine2_val"></div>
-                <div id="unified_engine2_desc" class="text-sm mt-4 font-medium"></div>
+            <div class="p-5 bg-slate-900 rounded-2xl border border-slate-700/50">
+                <div class="text-slate-400 text-xs font-bold mb-2 uppercase tracking-widest">10年時剩餘車貸本金</div>
+                <div class="text-3xl font-black text-rose-500 font-mono tracking-tighter" id="debt_10y"></div>
+            </div>
+            <div class="p-5 bg-slate-800 rounded-2xl border border-slate-600">
+                <div class="text-slate-300 text-xs font-bold mb-2 uppercase tracking-widest">10年結算淨資產</div>
+                <div class="text-3xl font-black text-white font-mono tracking-tighter" id="net_10y"></div>
             </div>
         </div>
 
-        <!-- 最終淨值 -->
-        <div class="border-t border-slate-800 pt-10 grid grid-cols-1 lg:grid-cols-3 gap-8 text-center">
-            <div class="p-6 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col justify-center">
-                <div class="text-slate-400 text-sm font-bold mb-3 uppercase tracking-widest">10年後 ETF 總資產</div>
-                <div class="text-4xl md:text-5xl font-black text-cyan-400 font-mono tracking-tighter" id="unified_total_assets"></div>
+        <!-- 🏆 新增：自訂終局目標結算 (Custom N-Year Target) -->
+        <h3 class="text-2xl md:text-3xl font-bold text-emerald-400 mb-6 border-b border-emerald-900/50 pb-3 flex items-center gap-3 mt-4">
+            <span>🏆</span> 【自訂終局】<span id="lbl_custom_year" class="bg-emerald-900/50 px-2 rounded"></span> 年後資產負債大結算
+        </h3>
+        
+        <!-- 引擎成效 (根據自訂年數) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50 relative overflow-hidden backdrop-blur-sm">
+                <div class="absolute -right-4 -bottom-4 text-7xl opacity-5">💰</div>
+                <div class="text-sm text-slate-400 mb-2 font-bold tracking-widest uppercase">引擎一：單筆投入 <span class="lbl_year_text"></span>年後總值</div>
+                <div class="text-3xl md:text-4xl font-black text-white font-mono tracking-tight" id="engine1_custom"></div>
+                <div id="engine1_desc_custom" class="text-xs mt-3 font-medium"></div>
             </div>
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50 relative overflow-hidden backdrop-blur-sm">
+                <div class="absolute -right-4 -bottom-4 text-7xl opacity-5">📈</div>
+                <div class="text-sm text-slate-400 mb-2 font-bold tracking-widest uppercase">引擎二：定期定額 <span class="lbl_year_text"></span>年後總值</div>
+                <div class="text-3xl md:text-4xl font-black text-white font-mono tracking-tight" id="engine2_custom"></div>
+                <div id="engine2_desc_custom" class="text-xs mt-3 font-medium"></div>
+            </div>
+        </div>
+
+        <!-- 自訂終局最終淨值 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 text-center mb-10">
             <div class="p-6 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col justify-center">
+                <div class="text-slate-400 text-sm font-bold mb-3 uppercase tracking-widest">期末 ETF 總資產</div>
+                <div class="text-4xl md:text-5xl font-black text-cyan-400 font-mono tracking-tighter" id="assets_custom"></div>
+            </div>
+            <div class="p-6 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col justify-center relative">
+                <div class="absolute top-2 right-2 hidden text-xs bg-rose-950 text-rose-300 px-2 py-1 rounded" id="badge_debt_custom">⚠️ 需清償</div>
                 <div class="text-slate-400 text-sm font-bold mb-3 uppercase tracking-widest">須清償貸款本金</div>
-                <div class="text-4xl md:text-5xl font-black text-rose-400 font-mono tracking-tighter" id="unified_debt_owed"></div>
+                <div class="text-4xl md:text-5xl font-black text-rose-400 font-mono tracking-tighter" id="debt_custom"></div>
             </div>
             <div class="p-8 rounded-2xl transition-all duration-500 transform lg:scale-110 flex flex-col justify-center relative overflow-hidden z-10" id="final_net_card">
                 <div class="absolute inset-0 bg-white opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
-                <div class="text-sm font-black uppercase tracking-widest mb-3 z-10 drop-shadow-md" id="net_cash_title">結清車貸後，實拿淨資產</div>
-                <div class="text-5xl md:text-6xl font-black text-white leading-none font-mono tracking-tighter z-10 drop-shadow-lg" id="unified_net_cash_pocket"></div>
+                <div class="text-sm font-black uppercase tracking-widest mb-3 z-10 drop-shadow-md" id="net_cash_title">結清車貸後，實拿終局淨資產</div>
+                <div class="text-5xl md:text-6xl font-black text-white leading-none font-mono tracking-tighter z-10 drop-shadow-lg" id="net_custom"></div>
             </div>
         </div>
 
@@ -292,7 +339,7 @@
         <!-- 逐年財報表 -->
         <div class="mt-16">
             <h3 class="text-xl md:text-2xl font-bold text-slate-100 mb-6 flex items-center gap-3">
-                <span class="text-cyan-400">📊</span> 10 Years Balance Sheet (逐年資產負債追蹤表)
+                <span class="text-cyan-400">📊</span> 歷年資產負債追蹤表 (Balance Sheet)
             </h3>
             <div class="overflow-x-auto table-scroll rounded-2xl border border-slate-700 bg-slate-900/80 shadow-2xl backdrop-blur-sm">
                 <table class="w-full text-left text-base whitespace-nowrap">
@@ -316,6 +363,50 @@
 </div>
 
 <script>
+    // 10 檔精選 ETF 量化數據庫
+    const etfDatabase = {
+        "0050": { name: "0050 元大台灣50", rate: 8.5, desc: "台灣歷史最悠久市值型ETF。近10年含息年化約 10~12%，保守模型設定 8.5%。與台積電高度連動。" },
+        "006208": { name: "006208 富邦台50", rate: 8.5, desc: "追蹤同0050大盤指數，但內扣費用更低，長線微幅勝出。保守設定 8.5%。" },
+        "0056": { name: "0056 元大高股息", rate: 6.5, desc: "台灣老牌高股息，選股邏輯以預測未來殖利率為主。近10年含息年化約 7~8%，保守設定 6.5%。" },
+        "00878": { name: "00878 國泰永續高股息", rate: 7.0, desc: "人氣最高高股息，具備ESG抗跌屬性。成立以來年化約 9~10%，保守設定 7.0%。防禦力佳。" },
+        "00713": { name: "00713 元大台灣高息低波", rate: 7.5, desc: "因子選股極其優異，空頭市場極度抗跌。近5年含息年化約 12~14%，保守設定 7.5%。" },
+        "00919": { name: "00919 群益台灣精選高息", rate: 7.5, desc: "宣告殖利率常破10%，資金動能強勁。成立以來年化超越 15%，保守設定 7.5%。" },
+        "00929": { name: "00929 復華台灣科技優息", rate: 7.0, desc: "100% 聚焦科技股的月配息ETF。受單一產業週期影響大，波動稍高。保守設定 7.0%。" },
+        "00692": { name: "00692 富邦公司治理", rate: 7.5, desc: "類大盤市值型，加入公司治理因子，歷史報酬長年微幅打敗大盤。保守設定 7.5%。" },
+        "00733": { name: "00733 富邦臺灣中小", rate: 9.0, desc: "極致動能選股因子，多頭爆發力極強(近5年年化逾20%)，但空頭回檔極深。高風險高報酬，保守設定 9.0%。" },
+        "00662": { name: "00662 富邦NASDAQ", rate: 10.0, desc: "追蹤美股那斯達克100指數，純粹的全球科技巨頭。近10年含息年化破 16%，保守設定 10.0%。" }
+    };
+
+    // 初始化 ETF 選單與資料庫
+    function initEtfDatabase() {
+        const selectEl = document.getElementById('etf_select');
+        const tbodyEl = document.getElementById('etf_database_body');
+        
+        selectEl.innerHTML = '';
+        tbodyEl.innerHTML = '';
+
+        Object.keys(etfDatabase).forEach(key => {
+            const etf = etfDatabase[key];
+            const option = document.createElement('option');
+            option.value = key;
+            option.text = `${etf.name} (預期 ${etf.rate.toFixed(1)}%)`;
+            if(key === '00878') option.selected = true;
+            selectEl.appendChild(option);
+
+            const tr = document.createElement('tr');
+            tr.className = "transition-row cursor-pointer hover:bg-slate-800/50";
+            tr.dataset.etf = key;
+            tr.onclick = () => { selectEl.value = key; updateEtfRate(); };
+            
+            tr.innerHTML = `
+                <td class="p-4 font-bold text-slate-200">${etf.name}</td>
+                <td class="p-4 text-center text-emerald-400 font-mono font-bold text-lg">${etf.rate.toFixed(1)}%</td>
+                <td class="p-4 text-slate-400 whitespace-normal leading-relaxed text-sm">${etf.desc}</td>
+            `;
+            tbodyEl.appendChild(tr);
+        });
+    }
+
     // 預設參數
     const defaultData = {
         scheme: 'A', annual_km: 45000, years: 10, crv_sell_price: 800000, crv_current_km: 71000,
@@ -329,13 +420,14 @@
     const fmtNum = (num) => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 }).format(num);
 
     function loadData() {
-        const saved = localStorage.getItem('carCalcDataCyber');
+        const saved = localStorage.getItem('carCalcDataDualZone');
         const data = saved ? JSON.parse(saved) : defaultData;
         Object.keys(defaultData).forEach(key => {
             const el = document.getElementById(key);
             if(el) { el.value = data[key]; }
         });
         setScheme(data.scheme || 'A');
+        highlightEtfRow(data.etf_select || '00878');
     }
 
     function saveData() {
@@ -345,13 +437,13 @@
             if(el) { data[key] = (el.type === 'number' || el.type === 'range') ? parseFloat(el.value) || 0 : el.value; }
         });
         data.scheme = currentScheme;
-        localStorage.setItem('carCalcDataCyber', JSON.stringify(data));
+        localStorage.setItem('carCalcDataDualZone', JSON.stringify(data));
         return data;
     }
 
     window.resetDefaults = function() {
         if(confirm("確定要將所有參數與投資設定還原到初始狀態嗎？")) { 
-            localStorage.removeItem('carCalcDataCyber'); 
+            localStorage.removeItem('carCalcDataDualZone'); 
             loadData(); 
             calculate(); 
         }
@@ -389,7 +481,6 @@
             evBadge.className = "absolute -top-4 left-6 text-sm px-4 py-1.5 rounded-full font-bold text-white transition-all duration-300 border bg-emerald-600 border-emerald-400 shadow-lg";
             evBadge.innerText = "執行方案 B";
             
-            // 強制歸零
             lumpInput.value = 0;
             lumpInput.disabled = true;
             lumpInput.classList.add('disabled-input');
@@ -403,18 +494,31 @@
         calculate();
     }
 
+    function highlightEtfRow(selectedKey) {
+        const rows = document.querySelectorAll('#etf_database_body tr');
+        rows.forEach(row => {
+            if(row.dataset.etf === selectedKey) {
+                row.classList.add('highlight-row');
+            } else {
+                row.classList.remove('highlight-row');
+            }
+        });
+    }
+
     window.updateEtfRate = function() {
         const select = document.getElementById('etf_select').value;
         const rateInput = document.getElementById('inv_rate');
         const slider = document.getElementById('inv_rate_slider');
-        if(select === '0050') rateInput.value = 8.0;
-        if(select === '00713') rateInput.value = 6.5;
-        if(select === '00878') rateInput.value = 7.0;
-        slider.value = rateInput.value;
+        
+        if(etfDatabase[select]) {
+            rateInput.value = etfDatabase[select].rate;
+            slider.value = etfDatabase[select].rate;
+        }
+        
+        highlightEtfRow(select);
         calculate();
     }
 
-    // 🏦 PMT 公式
     function calculatePMT(rate_per_year, n_years, principal) {
         if(rate_per_year === 0) return principal / (n_years * 12);
         const r = (rate_per_year / 100) / 12;
@@ -437,11 +541,17 @@
 
     window.calculate = function() {
         const d = saveData();
+        const targetYears = Math.max(1, d.years); // 自訂目標年限
+
+        // 更新 UI 顯示的目標年數
+        document.getElementById('lbl_custom_year').innerText = targetYears;
+        document.getElementById('loss_title_years').innerText = targetYears;
+        document.querySelectorAll('.lbl_year_text').forEach(el => el.innerText = targetYears);
 
         document.getElementById('cashflow_mode_badge').innerText = d.loan_type === 'interest_only' ? '💳 模式：理財型只繳息' : '💳 模式：本息平均攤還';
 
-        // --- 1. 計算純養車營業成本 (加入 Math.round 避免小數點) ---
-        const crvFinalKm = d.crv_current_km + (d.annual_km * d.years);
+        // --- 1. 計算純養車營業成本 ---
+        const crvFinalKm = d.crv_current_km + (d.annual_km * targetYears);
         const crvGas = (d.annual_km / d.crv_kml) * d.gas_price;
         const crvMaint = (d.annual_km / 10000) * 5000 + (crvFinalKm > 200000 ? 15000 : 0); 
         const crvTire = (d.annual_km / 40000) * 16000;
@@ -455,26 +565,23 @@
         const evTire = (d.annual_km / 40000) * 14000; 
         
         const evMonthlyElec = Math.round(evElec / 12);
-        const evMonthlySinking = Math.round((32000 + evMaint + evTire + (d.ev_charger/d.years)) / 12);
+        const evMonthlySinking = Math.round((32000 + evMaint + evTire + (d.ev_charger/targetYears)) / 12);
 
         // --- 2. 貸款邏輯切換 ---
         let loanPrincipal = (currentScheme === 'A') ? d.ev_price : (d.ev_price - d.crv_sell_price);
         if(loanPrincipal < 0) loanPrincipal = 0;
 
         let monthlyPMT = 0;
-        let endPrincipalOwed = 0;
-        let totalInterestPaid = 0;
+        let totalInterestPaid = 0; // targetYears 期間的利息總和
         let loanDesc = "";
 
         if (d.loan_type === 'interest_only') {
             monthlyPMT = Math.round(loanPrincipal * ((d.loan_rate / 100) / 12));
-            endPrincipalOwed = loanPrincipal;
-            totalInterestPaid = monthlyPMT * d.years * 12;
+            totalInterestPaid = monthlyPMT * targetYears * 12;
             loanDesc = `(借 ${Math.round(loanPrincipal/10000)}萬/僅繳息)`;
         } else {
-            monthlyPMT = Math.round(calculatePMT(d.loan_rate, d.years, loanPrincipal));
-            endPrincipalOwed = 0;
-            totalInterestPaid = (monthlyPMT * d.years * 12) - loanPrincipal;
+            monthlyPMT = Math.round(calculatePMT(d.loan_rate, targetYears, loanPrincipal));
+            totalInterestPaid = (monthlyPMT * targetYears * 12) - loanPrincipal;
             if(totalInterestPaid < 0) totalInterestPaid = 0;
             loanDesc = `(借 ${Math.round(loanPrincipal/10000)}萬/攤還)`;
         }
@@ -521,8 +628,8 @@
             `;
         }
 
-        const totalCrvLoss = (crvMonthlyGas + crvMonthlySinking) * 12 * d.years;
-        const totalEvLoss = (evMonthlyElec + evMonthlySinking) * 12 * d.years + totalInterestPaid;
+        const totalCrvLoss = (crvMonthlyGas + crvMonthlySinking) * 12 * targetYears;
+        const totalEvLoss = (evMonthlyElec + evMonthlySinking) * 12 * targetYears + totalInterestPaid;
         const lossDiff = totalCrvLoss - totalEvLoss;
         const lossEl = document.getElementById('total_loss_diff');
         
@@ -534,13 +641,13 @@
             lossEl.className = "text-2xl md:text-3xl font-black text-rose-400 font-mono z-10 drop-shadow-md mt-2";
         }
 
-        // --- 4. 自訂投資部位 10 年運算 ---
+        // --- 4. 自訂投資部位 雙時區量化運算 ---
         let invest_ls = Math.max(0, d.custom_lumpsum);
         if(currentScheme === 'B') invest_ls = 0;
         
         const invest_pmt = Math.max(0, d.custom_monthly);
-        const r = Math.max(0, d.inv_rate / 100);
-        const monthlySaveRate = r / 12;
+        const r_annual = Math.max(0, d.inv_rate / 100);
+        const effectiveMonthlyRate = Math.pow(1 + r_annual, 1/12) - 1;
         
         document.getElementById('summary_lumpsum').innerText = fmt(invest_ls);
         document.getElementById('summary_monthly').innerText = fmt(invest_pmt);
@@ -557,17 +664,30 @@
         let monthsToPayoff = 0;
         let payoffFound = false;
 
-        for(let y = 1; y <= d.years; y++) {
+        // 快照變數
+        let ls_10y = 0, dca_10y = 0, debt_10y = 0;
+        let ls_custom = 0, dca_custom = 0, debt_custom = 0;
+
+        const calcLimit = Math.max(10, targetYears); // 迴圈至少跑10年，以抓取快照
+
+        for(let y = 1; y <= calcLimit; y++) {
             for(let m = 1; m <= 12; m++) {
-                current_lumpsum_val = Math.round(current_lumpsum_val * (1 + monthlySaveRate));
-                current_dca_val = Math.round(current_dca_val * (1 + monthlySaveRate)) + invest_pmt;
+                current_lumpsum_val = current_lumpsum_val * (1 + effectiveMonthlyRate);
+                current_dca_val = current_dca_val * (1 + effectiveMonthlyRate) + invest_pmt;
                 accumulated_principal += invest_pmt;
 
                 if (d.loan_type === 'amortization') {
-                    const interest = Math.round(current_debt * loanMonthlyRate);
-                    const principal_paid = monthlyPMT - interest;
-                    current_debt = current_debt - principal_paid;
-                    if(current_debt < 0 || (y === d.years && m === 12)) current_debt = 0; 
+                    if(y <= targetYears) {
+                        const interest = current_debt * loanMonthlyRate;
+                        const principal_paid = monthlyPMT - interest;
+                        current_debt = current_debt - principal_paid;
+                        if(current_debt < 0 || (y === targetYears && m === 12)) current_debt = 0; 
+                    } else {
+                        current_debt = 0;
+                    }
+                } else {
+                    // 理財型：只有到目標年限（合約到期）才假設一次清償本金
+                    if(y > targetYears) current_debt = 0; 
                 }
                 
                 const total_asset_now = current_lumpsum_val + current_dca_val;
@@ -577,14 +697,29 @@
                 }
             }
 
+            // 擷取 10 年快照
+            if (y === 10) {
+                ls_10y = current_lumpsum_val;
+                dca_10y = current_dca_val;
+                debt_10y = current_debt;
+            }
+
+            // 擷取自訂終局快照
+            if (y === targetYears) {
+                ls_custom = current_lumpsum_val;
+                dca_custom = current_dca_val;
+                debt_custom = current_debt;
+            }
+
+            // 寫入表格 (如果使用者設 15 年，表就展開 15 行；若設 5 年，為了能看 10 年趨勢，依然展到 10 行)
             const total_asset_year_end = current_lumpsum_val + current_dca_val;
             const total_profit_year_end = total_asset_year_end - accumulated_principal;
             const net_worth_year_end = total_asset_year_end - current_debt;
 
             const tr = document.createElement('tr');
-            tr.className = "hover:bg-slate-800 transition-colors duration-200 cursor-default";
+            tr.className = y === targetYears ? "bg-emerald-900/30 transition-colors duration-200 cursor-default font-bold" : "hover:bg-slate-800 transition-colors duration-200 cursor-default";
             tr.innerHTML = `
-                <td class="p-5 font-bold text-slate-300">Y${y}</td>
+                <td class="p-5 font-bold ${y === targetYears ? 'text-emerald-400' : 'text-slate-300'}">Y${y} ${y === targetYears ? '🎯' : ''}</td>
                 <td class="p-5 text-right text-slate-400 font-mono">${fmtNum(accumulated_principal)}</td>
                 <td class="p-5 text-right text-emerald-400 font-bold font-mono tracking-wide">+${fmtNum(total_profit_year_end)}</td>
                 <td class="p-5 text-right text-white font-bold font-mono tracking-wide bg-slate-800/60">${fmtNum(total_asset_year_end)}</td>
@@ -594,19 +729,15 @@
             tableBody.appendChild(tr);
         }
 
+        // 推算 30 年交叉點
         if (!payoffFound && current_debt > 0) {
             let future_ls = current_lumpsum_val;
             let future_dca = current_dca_val;
             let future_debt = current_debt;
-            for(let m = d.years * 12 + 1; m <= 360; m++) {
-                future_ls = Math.round(future_ls * (1 + monthlySaveRate));
-                future_dca = Math.round(future_dca * (1 + monthlySaveRate)) + invest_pmt;
-                if (d.loan_type === 'amortization' && m <= d.years * 12) {
-                    const interest = Math.round(future_debt * loanMonthlyRate);
-                    const principal_paid = monthlyPMT - interest;
-                    future_debt = future_debt - principal_paid;
-                    if(future_debt < 0) future_debt = 0;
-                }
+            for(let m = calcLimit * 12 + 1; m <= 360; m++) {
+                future_ls = future_ls * (1 + effectiveMonthlyRate);
+                future_dca = future_dca * (1 + effectiveMonthlyRate) + invest_pmt;
+                // 若超過目標年限，負債已被清償 (current_debt 已是0，這段通常用不到，但作為保險)
                 if (future_ls + future_dca >= future_debt) {
                     monthsToPayoff = m;
                     payoffFound = true;
@@ -615,41 +746,48 @@
             }
         }
 
-        // --- 5. 終局 UI 更新 ---
-        document.getElementById('unified_etf_name').innerText = document.getElementById('etf_select').options[document.getElementById('etf_select').selectedIndex].text.split(' ')[0];
+        // --- 5. 雙時區 UI 更新 ---
+        let selectedEtfName = document.getElementById('etf_select').options[document.getElementById('etf_select').selectedIndex].text;
+        selectedEtfName = selectedEtfName.split('(')[0].trim();
+        document.getElementById('unified_etf_name').innerText = selectedEtfName;
         document.getElementById('unified_rate').innerText = d.inv_rate;
         
-        const badgeUnified = document.getElementById('badge_principal_unified');
-        if(current_debt > 0) {
-            badgeUnified.innerText = `⚠️ 10年後須自總資產清償車貸：${Math.round(current_debt/10000)} 萬`;
+        // 【基準 10 年 UI 寫入】
+        document.getElementById('assets_10y').innerText = fmt(ls_10y + dca_10y);
+        document.getElementById('debt_10y').innerText = "-" + fmt(debt_10y);
+        document.getElementById('net_10y').innerText = fmt((ls_10y + dca_10y) - debt_10y);
+
+        // 【自訂終局 UI 寫入】
+        const badgeUnified = document.getElementById('badge_debt_custom');
+        if(debt_custom > 0) {
             badgeUnified.classList.remove('hidden');
         } else {
             badgeUnified.classList.add('hidden');
         }
 
-        document.getElementById('unified_engine1_val').innerText = fmt(current_lumpsum_val);
-        document.getElementById('unified_engine1_desc').innerHTML = (currentScheme === 'A') 
+        document.getElementById('engine1_custom').innerText = fmt(ls_custom);
+        document.getElementById('engine1_desc_custom').innerHTML = (currentScheme === 'A') 
             ? (invest_ls > 0 ? "<span class='text-cyan-400 font-bold'>由大筆資本爆發成長</span>" : "目前無投入資金")
             : `<span class="text-rose-400 font-bold tracking-wide">已作廢：款項抵扣車價 ($0)</span>`;
 
-        document.getElementById('unified_engine2_val').innerText = fmt(current_dca_val);
-        document.getElementById('unified_engine2_desc').innerHTML = invest_pmt > 0 
+        document.getElementById('engine2_custom').innerText = fmt(dca_custom);
+        document.getElementById('engine2_desc_custom').innerHTML = invest_pmt > 0 
             ? `由每月 <span class="text-cyan-400 font-bold font-mono text-base">${fmt(invest_pmt)}</span> 涓滴成河` 
             : "目前無定額扣款";
         
-        const total_etf_assets = current_lumpsum_val + current_dca_val;
-        const final_net_cash = total_etf_assets - current_debt;
+        const total_etf_assets_custom = ls_custom + dca_custom;
+        const final_net_cash_custom = total_etf_assets_custom - debt_custom;
 
-        document.getElementById('unified_total_assets').innerText = fmt(total_etf_assets);
-        document.getElementById('unified_debt_owed').innerText = "-" + fmt(current_debt);
+        document.getElementById('assets_custom').innerText = fmt(total_etf_assets_custom);
+        document.getElementById('debt_custom').innerText = "-" + fmt(debt_custom);
         
-        const netCashEl = document.getElementById('unified_net_cash_pocket');
+        const netCashEl = document.getElementById('net_custom');
         const netCashTitle = document.getElementById('net_cash_title');
         const netCard = document.getElementById('final_net_card');
         
-        netCashEl.innerText = fmt(final_net_cash);
+        netCashEl.innerText = fmt(final_net_cash_custom);
         
-        if(final_net_cash < 0) {
+        if(final_net_cash_custom < 0) {
             netCard.className = "p-8 rounded-2xl transition-all duration-500 transform lg:scale-110 flex flex-col justify-center relative overflow-hidden z-10 bg-rose-900 border border-rose-500 shadow-[0_0_40px_rgba(225,29,72,0.4)]";
             netCashTitle.innerText = "🚨 嚴重警告：資產不夠還車貸，需倒貼現金";
             netCashTitle.className = "text-sm font-black uppercase tracking-widest mb-3 z-10 drop-shadow-md text-rose-200";
@@ -695,7 +833,12 @@
         }
     }
 
-    window.onload = function() { loadData(); calculate(); };
+    // 初始化程式
+    window.onload = function() { 
+        initEtfDatabase();
+        loadData(); 
+        calculate(); 
+    };
 </script>
 </body>
 </html>
